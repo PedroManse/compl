@@ -1,0 +1,14 @@
+[ ? ] -> word[ sys home progs ]
+#! [ "progs" $p ] -> exec[ /home/manse/list_nix_files.bash $p ]
+[ progs ? ] -> sh![ list_nix_files ]
+[ home ] -> end
+[ sys ] -> end
+
+# sh list_nix_files
+CR=""
+for path in "$DOTS"/nix/programs/*.nix ; do
+	file=$(basename "$path")
+	CR="$CR ${file%.nix}"
+done
+echo $(compgen -W "$CR" "${COMP_WORDS[2]}" )
+# end
