@@ -11,14 +11,14 @@ pub enum Input {
 
 #[derive(Debug)]
 pub enum Output {
-    StckRaw(String),
-    Sh(String),
-    Glob(String),
-    ShRaw(String),
-    Exec(String),
-    ExecRaw(String),
-    Word(Vec<String>),
-    End,
+    StckRaw(String),   // stck![ infile ]
+    Sh(String),        // sh[ infile ]
+    Glob(String),      // glob[ pattern ]
+    ShRaw(String),     // sh![ infile ]
+    Exec(String),      // exec[ file ]
+    ExecRaw(String),   // exec![ file ]
+    Word(Vec<String>), // word[ word list ]
+    End,               // end
 }
 
 #[derive(Debug)]
