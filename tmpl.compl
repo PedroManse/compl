@@ -1,5 +1,5 @@
 [ ? ] -> sh[ list_tmpl_files ]
-[ ? ? ] -> end
+[ ? * ] -> end
 
 # sh list_tmpl_files
 CR=""

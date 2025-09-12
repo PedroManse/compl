@@ -4,9 +4,9 @@ use std::ops::Deref;
 #[derive(Clone, Debug)]
 pub enum Input {
     Word(String), // text
-    Any,          // *
+    Any,          // ?
     Var(String),  // ${name}
-    Rest,         // $@
+    Rest,         // *
 }
 
 #[derive(Debug)]
@@ -19,6 +19,41 @@ pub enum Output {
     ExecRaw(String),   // exec![ file ]
     Word(Vec<String>), // word[ word list ]
     End,               // end
+}
+
+fn write_arr(vec: impl Iterator<Item = impl AsRef<str>>) {
+    for txt in vec {
+        println!("{}", txt.as_ref());
+    }
+}
+
+impl<'r> ContextfullRule<'r> {
+    pub fn make(&self, files: &HashMap<String, InfileScript>) -> Vec<String> {
+        match &self.rule.output {
+            Output::End => vec![],
+            Output::Word(k) => k.clone(),
+            Output::Sh(k) => {
+                let out = std::process::Command::new("bash")
+                    .envs(&self.variables)
+                    .arg("-c")
+                    .arg(match files.get(k){
+                        Some(InfileScript::Sh(t))=>t,
+                        _ => todo!()
+                    })
+                    .output()
+                    .unwrap()
+                    .stdout;
+                String::from_utf8(out)
+                    .unwrap()
+                    .split_whitespace()
+                    .map(String::from)
+                    .collect()
+            }
+            _ => {
+                todo!()
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
