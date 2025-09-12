@@ -1,0 +1,10 @@
+[ progs ? ] -> sh[ list_nix_files ]
+[ home ] -> end
+[ sys ] -> end
+[ ? ] -> word[ sys home progs ]
+
+# sh list_nix_files
+for path in "$DOTS"/nix/programs/*.nix ; do
+        basename "$path"
+done
+# end
