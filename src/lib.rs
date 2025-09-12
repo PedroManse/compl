@@ -13,6 +13,7 @@ pub enum Input {
 pub enum Output {
     StckRaw(String),
     Sh(String),
+    Glob(String),
     ShRaw(String),
     Exec(String),
     ExecRaw(String),
