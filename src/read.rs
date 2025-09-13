@@ -1,7 +1,8 @@
-use std::collections::HashMap;
 use crate::{Input, Output, RawOutput, StaticRule};
+use std::collections::HashMap;
 
-pub fn parse_doc(content: String) -> crate::Context {
+#[must_use]
+pub fn parse_doc(content: &str) -> crate::Context {
     let mut ctx = crate::Context {
         rule_book: vec![],
         shell_scripts: HashMap::new(),

@@ -27,7 +27,7 @@ pub enum Output {
     End,               // end
 }
 
-impl<'r> ContextfullRule<'r> {
+impl ContextfullRule<'_> {
     fn make(&self, ctx: &Context) -> Vec<String> {
         match &self.rule.output {
             Output::End => vec![],
@@ -55,13 +55,16 @@ impl<'r> ContextfullRule<'r> {
             }
         }
     }
+    #[must_use]
     pub fn words(self, ctx: &Context) -> Vec<String> {
-        let last = std::env::args().skip(1).last().unwrap_or("".to_string());
         let words = self.make(ctx);
-        if self.ignore_last || self.raw == RawOutput::Raw {
-            words
-        } else {
+        if let Some(last) = std::env::args().skip(1).last()
+            && self.raw != RawOutput::Raw
+            && !self.ignore_last
+        {
             words.into_iter().filter(|w| w.starts_with(&last)).collect()
+        } else {
+            words
         }
     }
 }
@@ -74,6 +77,7 @@ pub struct StaticRule {
 }
 
 impl StaticRule {
+    #[must_use]
     pub fn try_rule(&self, user_inputs: &[String]) -> Option<ContextfullRule<'_>> {
         let mut input_rules = self.inputs.clone().into_iter();
         let mut rule = input_rules.next();
@@ -93,6 +97,7 @@ impl StaticRule {
                 }
             };
         }
+        println!("{user_inputs:?} -> {rule:?}");
         match rule {
             Some(Input::Maybe) => Some(ContextfullRule {
                 rule: self,
@@ -122,7 +127,7 @@ pub struct Context {
     pub shell_scripts: HashMap<String, String>,
 }
 
-impl<'r> Deref for ContextfullRule<'r> {
+impl Deref for ContextfullRule<'_> {
     type Target = StaticRule;
     fn deref(&self) -> &Self::Target {
         self.rule
