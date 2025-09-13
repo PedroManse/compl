@@ -5,6 +5,6 @@
 
 # sh list_nix_files
 for path in "$DOTS"/nix/programs/*.nix ; do
-        basename "$path"
+        basename "${path%.nix}"
 done
 # end
