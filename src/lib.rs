@@ -97,7 +97,6 @@ impl StaticRule {
                 }
             };
         }
-        println!("{user_inputs:?} -> {rule:?}");
         match rule {
             Some(Input::Maybe) => Some(ContextfullRule {
                 rule: self,
