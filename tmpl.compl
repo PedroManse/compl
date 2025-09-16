@@ -2,8 +2,7 @@
 [ ? * ] -> end
 
 # sh list_tmpl_files
-CR=""
-for path in "$TMPL_DIR"/*.sh ; do
-	basename "$path"
+for path in "$TMPLRS_DIR"/*.sh ; do
+	basename "${path%.sh}"
 done
 # end
