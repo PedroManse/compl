@@ -1,6 +1,7 @@
 use glob::glob;
 use std::collections::HashMap;
 use std::ops::Deref;
+use std::os::unix::ffi::OsStringExt;
 pub mod read;
 
 #[derive(Clone, Debug)]
@@ -27,44 +28,69 @@ pub enum Output {
     End,               // end
 }
 
+#[derive(thiserror::Error, Debug)]
+pub enum CompError {
+    #[error(transparent)]
+    IO(#[from] std::io::Error),
+    #[error(transparent)]
+    GlobPat(#[from] glob::PatternError),
+    #[error(transparent)]
+    GlobRt(#[from] glob::GlobError),
+    #[error(transparent)]
+    Utf8(#[from] std::string::FromUtf8Error),
+    #[error("Inlined script {0} not found")]
+    LocalScriptNotFound(String),
+    #[error("Expected either graph item ([] -> []) or inline script definition")]
+    ParseLineMissingArrow(String),
+    #[error("Failed to find output item of line {0}")]
+    ParseLineMissingOutputItem(String),
+    #[error("first argument must be the .compl file to use as the completion graph")]
+    MissingComplFile,
+}
+
 impl ContextfullRule<'_> {
-    fn make(&self, ctx: &Context) -> Vec<String> {
+    fn make(&self, ctx: &Context) -> Result<Vec<String>, CompError> {
         match &self.rule.output {
-            Output::End => vec![],
-            Output::Word(k) => k.clone(),
+            Output::End => Ok(vec![]),
+            Output::Word(k) => Ok(k.clone()),
             Output::Sh(k) => {
                 let out = std::process::Command::new("bash")
                     .envs(&self.variables)
                     .arg("-c")
-                    .arg(ctx.shell_scripts.get(k).unwrap())
-                    .output()
-                    .unwrap()
+                    .arg(
+                        ctx.shell_scripts
+                            .get(k)
+                            .ok_or(CompError::LocalScriptNotFound(k.clone()))?,
+                    )
+                    .output()?
                     .stdout;
-                String::from_utf8(out)
-                    .unwrap()
+                let words = String::from_utf8(out)?
                     .split_whitespace()
                     .map(String::from)
-                    .collect()
+                    .collect();
+                Ok(words)
             }
-            Output::Glob(pat) => glob(pat)
-                .unwrap()
-                .map(|p| p.unwrap().into_os_string().into_string().unwrap())
+            Output::Glob(pat) => glob(pat)?
+                .map(|p| {
+                    let bytes = p?.into_os_string().into_vec();
+                    let string = String::from_utf8(bytes)?;
+                    Ok(string)
+                })
                 .collect(),
             Output::Exec(_file) => {
                 todo!()
             }
         }
     }
-    #[must_use]
-    pub fn words(self, ctx: &Context) -> Vec<String> {
-        let words = self.make(ctx);
+    pub fn words(self, ctx: &Context) -> Result<Vec<String>, CompError> {
+        let words = self.make(ctx)?;
         if let Some(last) = std::env::args().skip(1).last()
             && self.raw != RawOutput::Raw
             && !self.ignore_last
         {
-            words.into_iter().filter(|w| w.starts_with(&last)).collect()
+            Ok(words.into_iter().filter(|w| w.starts_with(&last)).collect())
         } else {
-            words
+            Ok(words)
         }
     }
 }

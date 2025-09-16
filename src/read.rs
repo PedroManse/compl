@@ -1,8 +1,7 @@
-use crate::{Input, Output, RawOutput, StaticRule};
+use crate::{CompError, Input, Output, RawOutput, StaticRule};
 use std::collections::HashMap;
 
-#[must_use]
-pub fn parse_doc(content: &str) -> crate::Context {
+pub fn parse_doc(content: &str) -> Result<crate::Context, CompError> {
     let mut ctx = crate::Context {
         rule_book: vec![],
         shell_scripts: HashMap::new(),
@@ -24,24 +23,26 @@ pub fn parse_doc(content: &str) -> crate::Context {
                 if let Some(name) = line.strip_prefix("# sh ") {
                     on_file = Some((String::from(name), String::new()));
                 } else if !line.is_empty() {
-                    let rule = read_rule(line);
+                    let rule = read_rule(line)?;
                     ctx.rule_book.push(rule);
                 }
             }
         }
     }
-    ctx
+    Ok(ctx)
 }
 
-fn read_rule(txt: &str) -> StaticRule {
-    let (input, output) = txt.split_once("->").unwrap();
+fn read_rule(txt: &str) -> Result<StaticRule, CompError> {
+    let (input, output) = txt
+        .split_once("->")
+        .ok_or(CompError::ParseLineMissingArrow(txt.to_string()))?;
     let mut parsed_inputs = vec![];
     let inputs = input
         .trim()
         .strip_prefix('[')
-        .unwrap()
+        .ok_or(CompError::ParseLineMissingArrow(txt.to_string()))?
         .strip_suffix(']')
-        .unwrap()
+        .ok_or(CompError::ParseLineMissingArrow(txt.to_string()))?
         .split_whitespace();
     for input in inputs {
         let parsed = match input.trim() {
@@ -61,8 +62,14 @@ fn read_rule(txt: &str) -> StaticRule {
     let (output, raw) = if output.trim() == "end" {
         (Output::End, RawOutput::Raw)
     } else {
-        let (cmd, args) = output.trim().split_once('[').unwrap();
-        let mut args = args.strip_suffix(']').unwrap().split_whitespace();
+        let (cmd, args) = output
+            .trim()
+            .split_once('[')
+            .ok_or(CompError::ParseLineMissingOutputItem(txt.to_string()))?;
+        let mut args = args
+            .strip_suffix(']')
+            .ok_or(CompError::ParseLineMissingOutputItem(txt.to_string()))?
+            .split_whitespace();
         let (cmd, raw) = if let Some(cmd) = cmd.strip_suffix('!') {
             (cmd, RawOutput::Raw)
         } else {
@@ -77,9 +84,9 @@ fn read_rule(txt: &str) -> StaticRule {
         };
         (out, raw)
     };
-    StaticRule {
+    Ok(StaticRule {
         inputs: parsed_inputs,
         output,
         raw,
-    }
+    })
 }
