@@ -78,8 +78,17 @@ impl ContextfullRule<'_> {
                 })
                 .collect::<Result<_, _>>()
                 .map(Option::Some),
-            Output::Exec(_file) => {
-                todo!()
+            Output::Exec(cmd) => {
+                let out = std::process::Command::new(cmd)
+                    .envs(&self.variables)
+                    .args(std::env::args())
+                    .output()?
+                    .stdout;
+                let words = String::from_utf8(out)?
+                    .split_whitespace()
+                    .map(String::from)
+                    .collect();
+                Ok(Some(words))
             }
         }
     }
@@ -91,7 +100,9 @@ impl ContextfullRule<'_> {
             && self.raw != RawOutput::Raw
             && !self.ignore_last
         {
-            Ok(Some(words.into_iter().filter(|w| w.starts_with(&last)).collect()))
+            Ok(Some(
+                words.into_iter().filter(|w| w.starts_with(&last)).collect(),
+            ))
         } else {
             Ok(Some(words))
         }
