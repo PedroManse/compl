@@ -1,8 +1,0 @@
-[ ? ] -> sh[ list_tmpl_files ]
-[ ? * ] -> end
-
-# sh list_tmpl_files
-for path in "$TMPLRS_DIR"/*.sh ; do
-	basename "${path%.sh}"
-done
-# end
