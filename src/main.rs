@@ -18,9 +18,10 @@ fn exec() -> Result<(), CompError> {
     let rule = doc.rule_book.iter().find_map(|r| r.try_rule(&inputs));
 
     if let Some(active_rule) = rule {
-        let words = active_rule.words(&doc)?;
-        for w in words {
-            print!("{w} ");
+        if let Some(words) = active_rule.words(&doc)? {
+            for w in words {
+                print!("{w} ");
+            }
         }
     }
     Ok(())

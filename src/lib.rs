@@ -49,10 +49,10 @@ pub enum CompError {
 }
 
 impl ContextfullRule<'_> {
-    fn make(&self, ctx: &Context) -> Result<Vec<String>, CompError> {
+    fn make(&self, ctx: &Context) -> Result<Option<Vec<String>>, CompError> {
         match &self.rule.output {
-            Output::End => Ok(vec![]),
-            Output::Word(k) => Ok(k.clone()),
+            Output::End => Ok(None),
+            Output::Word(k) => Ok(Some(k.clone())),
             Output::Sh(k) => {
                 let out = std::process::Command::new("bash")
                     .envs(&self.variables)
@@ -68,7 +68,7 @@ impl ContextfullRule<'_> {
                     .split_whitespace()
                     .map(String::from)
                     .collect();
-                Ok(words)
+                Ok(Some(words))
             }
             Output::Glob(pat) => glob(pat)?
                 .map(|p| {
@@ -76,21 +76,24 @@ impl ContextfullRule<'_> {
                     let string = String::from_utf8(bytes)?;
                     Ok(string)
                 })
-                .collect(),
+                .collect::<Result<_, _>>()
+                .map(Option::Some),
             Output::Exec(_file) => {
                 todo!()
             }
         }
     }
-    pub fn words(self, ctx: &Context) -> Result<Vec<String>, CompError> {
-        let words = self.make(ctx)?;
+    pub fn words(self, ctx: &Context) -> Result<Option<Vec<String>>, CompError> {
+        let Some(words) = self.make(ctx)? else {
+            return Ok(None);
+        };
         if let Some(last) = std::env::args().skip(1).last()
             && self.raw != RawOutput::Raw
             && !self.ignore_last
         {
-            Ok(words.into_iter().filter(|w| w.starts_with(&last)).collect())
+            Ok(Some(words.into_iter().filter(|w| w.starts_with(&last)).collect()))
         } else {
-            Ok(words)
+            Ok(Some(words))
         }
     }
 }
