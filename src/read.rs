@@ -1,6 +1,7 @@
 use crate::{CompError, Input, Output, RawOutput, StaticRule};
 use std::collections::HashMap;
 
+/// # Errors out if [`read_rule`] fails on a line
 pub fn parse_doc(content: &str) -> Result<crate::Context, CompError> {
     let mut ctx = crate::Context {
         rule_book: vec![],
@@ -76,9 +77,8 @@ fn read_rule(txt: &str) -> Result<StaticRule, CompError> {
             (cmd, RawOutput::NeedsFilter)
         };
         let out = match cmd {
-            "sh" => Output::Sh(String::from(args.next().unwrap())),
+            "sh" | "exec" => Output::Sh(String::from(args.next().unwrap())),
             "word" | "words" => Output::Word(args.map(String::from).collect()),
-            "exec" => Output::Sh(String::from(args.next().unwrap())),
             "glob" => Output::Glob(String::from(args.next().unwrap())),
             _ => todo!(),
         };
