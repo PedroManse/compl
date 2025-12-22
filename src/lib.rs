@@ -5,6 +5,7 @@ pub mod read;
 
 #[derive(Clone, Debug)]
 pub enum Input {
+    Sh(String),   // sh[ infile ]
     Word(String), // text
     Any,          // .
     Maybe,        // ?
@@ -129,14 +130,38 @@ pub struct StaticRule {
     pub raw: RawOutput,
 }
 
+// should cache result of input script
 impl StaticRule {
     #[must_use]
-    pub fn try_rule(&self, user_inputs: &[String]) -> Option<ContextfullRule<'_>> {
+    pub fn try_rule(
+        &self,
+        user_inputs: &[String],
+        scripts: &HashMap<String, String>,
+    ) -> Option<ContextfullRule<'_>> {
         let mut input_rules = self.inputs.iter();
         let mut rule = input_rules.next();
         let mut vars = HashMap::new();
         for ipt in user_inputs {
             rule = match rule {
+                Some(Input::Sh(name)) => {
+                    let script = scripts.get(name).unwrap();
+                    let out = std::process::Command::new("bash")
+                        .arg("-c")
+                        .arg(script)
+                        .output()
+                        .unwrap()
+                        .stdout;
+                    let words: Vec<_> = String::from_utf8(out)
+                        .unwrap()
+                        .split_whitespace()
+                        .map(String::from)
+                        .collect();
+                    if words.contains(ipt) {
+                        input_rules.next()
+                    } else {
+                        return None;
+                    }
+                }
                 Some(Input::Maybe | Input::Any) => input_rules.next(),
                 Some(Input::Word(txt)) if txt == ipt => input_rules.next(),
                 Some(Input::Var(var_name)) => {
@@ -176,4 +201,13 @@ pub struct ContextfullRule<'r> {
 pub struct Context {
     pub rule_book: Vec<StaticRule>,
     pub shell_scripts: HashMap<String, String>,
+}
+
+impl Context {
+    #[must_use]
+    pub fn try_rules(&self, user_inputs: &[String]) -> Option<ContextfullRule<'_>> {
+        self.rule_book
+            .iter()
+            .find_map(|r| r.try_rule(user_inputs, &self.shell_scripts))
+    }
 }

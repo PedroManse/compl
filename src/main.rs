@@ -15,7 +15,7 @@ fn exec() -> Result<(), CompError> {
     let doc = compl::read::parse_doc(&file)?;
 
     let inputs: Vec<_> = inputs.collect();
-    let rule = doc.rule_book.iter().find_map(|r| r.try_rule(&inputs));
+    let rule = doc.try_rules(&inputs);
 
     if let Some(active_rule) = rule
         && let Some(words) = active_rule.words(&doc)?
