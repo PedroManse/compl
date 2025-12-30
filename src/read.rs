@@ -53,7 +53,10 @@ fn read_rule(txt: &str) -> Result<StaticRule, CompError> {
             otherwise => {
                 if let Some(var) = otherwise.strip_prefix('$') {
                     Input::Var(var.to_string())
-                } else if let Some(rest) = otherwise.strip_prefix("sh.") {
+                } else if let Some(rest) = otherwise
+                    .strip_prefix("sh\"")
+                    .and_then(|s| s.strip_suffix('"'))
+                {
                     Input::Sh(rest.to_owned())
                 } else {
                     Input::Word(otherwise.to_string())

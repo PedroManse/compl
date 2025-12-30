@@ -5,7 +5,7 @@ pub mod read;
 
 #[derive(Clone, Debug)]
 pub enum Input {
-    Sh(String),   // sh[ infile ]
+    Sh(String),   // sh"infile"
     Word(String), // text
     Any,          // .
     Maybe,        // ?
@@ -132,6 +132,12 @@ pub struct StaticRule {
 
 // should cache result of input script
 impl StaticRule {
+    /// # Panics
+    ///
+    /// ## Will panic if:
+    /// * The input script is not defined as an in-file script
+    /// * The scripts fails to execute
+    /// * The result from the script is not UTF-8
     #[must_use]
     pub fn try_rule(
         &self,
